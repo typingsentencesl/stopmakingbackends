@@ -1,0 +1,47 @@
+name: aftrburnr
+description: "AFTRBURNR — a local-first music player."
+publish_to: 'none'
+version: 0.2.0+2
+
+environment:
+  sdk: ^3.13.5
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_riverpod: ^3.4.3
+  drift: ^2.35.1
+  drift_flutter: ^0.3.1
+  media_kit: ^1.2.6
+  media_kit_libs_audio: ^1.0.7
+  path_provider: ^2.1.6
+  path: ^1.9.1
+  file_picker: ^13.1.0
+  audio_metadata_reader: ^1.8.0
+  lucide_icons_flutter: ^3.1.22
+  window_manager: ^0.5.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  drift_dev: ^2.35.1
+  build_runner: ^2.16.2
+
+flutter:
+  uses-material-design: false
+  fonts:
+    - family: Archivo XC
+      fonts:
+        - asset: assets/fonts/ArchivoXC-700.ttf
+          weight: 700
+        - asset: assets/fonts/ArchivoXC-800.ttf
+          weight: 800
+    - family: IBM Plex Sans
+      fonts:
+        - asset: assets/fonts/IBMPlexSans-400.ttf
+          weight: 400
+        - asset: assets/fonts/IBMPlexSans-500.ttf
+          weight: 500
+        - asset: assets/fonts/IBMPlexSans-600.ttf
+          weight: 600
