@@ -5,11 +5,11 @@ import 'package:flutter/painting.dart';
 /// from docs/DESIGN.md; change the spec first, then this file. Nothing else
 /// in lib/ may contain a hex color (test/design_guard_test.dart checks).
 abstract final class C {
-  // Surfaces, three steps plus pressed.
-  static const bg0 = Color(0xFF0C0B0A);
+  // Surfaces: canvas, panel, hover/card, selected/menu.
+  static const bg0 = Color(0xFF070606);
   static const bg1 = Color(0xFF141311);
-  static const bg2 = Color(0xFF1D1B19);
-  static const bg3 = Color(0xFF272522);
+  static const bg2 = Color(0xFF201E1C);
+  static const bg3 = Color(0xFF2C2A27);
 
   // Lines.
   static const line = Color(0xFF2A2825);
@@ -25,10 +25,6 @@ abstract final class C {
   static const flame = Color(0xFFFF5320);
   static const flamePressed = Color(0xFFE04415);
   static const onFlame = Color(0xFF0C0B0A);
-
-  /// `flame` at 10 % over a surface: background of the playing row only.
-  static Color flameWashOver(Color surface) =>
-      Color.alphaBlend(flame.withValues(alpha: 0.10), surface);
 
   static const transparent = Color(0x00000000);
 
@@ -54,31 +50,48 @@ abstract final class S {
   static const s10 = 96.0;
 }
 
-/// Fixed layout dimensions.
+/// Fixed layout dimensions (DESIGN.md §3).
 abstract final class Dim {
-  static const rowTight = 28.0;
-  static const rowNormal = 32.0;
-  static const rowTouch = 48.0;
-  static const sidebar = 224.0;
-  static const sidebarCollapsed = 56.0;
-  static const queuePanel = 336.0;
+  static const canvasGap = 8.0;
+  static const panelPad = 16.0;
+  static const gutter = 24.0;
+  static const libraryPanel = 280.0;
+  static const libraryPanelMin = 240.0;
+  static const libraryPanelCollapsed = 72.0;
+  static const nowPlayingPanel = 320.0;
   static const transport = 72.0;
-  static const miniTransport = 56.0;
-  static const gutter = S.s6;
-  static const gutterMobile = S.s5;
+  static const transportArt = 56.0;
+  static const row = 56.0;
+  static const rowArt = 40.0;
+  static const rowCompact = 32.0;
+  static const libraryItem = 64.0;
+  static const libraryItemArt = 48.0;
+  static const menuRow = 36.0;
+  static const button = 32.0;
+  static const buttonLarge = 48.0;
+  static const playSmall = 32.0;
+  static const playLarge = 56.0;
   static const tileArt = 168.0;
   static const tileArtMin = 144.0;
-  static const rowArt = 20.0;
-  static const rowArtTouch = 40.0;
   static const palette = 560.0;
-  static const mobileBreakpoint = 720.0;
+  static const progressTrack = 4.0;
+  static const progressThumb = 12.0;
   static const hairline = 1.0;
 }
 
-/// Radius rules: 0 for surfaces and art, 2 for interactive controls.
+/// Radius rules (DESIGN.md §5).
 abstract final class R {
   static const none = BorderRadius.zero;
-  static const control = BorderRadius.all(Radius.circular(2));
+
+  /// Rows, small art, menus, tooltips, inputs.
+  static const small = BorderRadius.all(Radius.circular(4));
+
+  /// Panels, cards, dialogs, large art.
+  static const panel = BorderRadius.all(Radius.circular(8));
+
+  /// Buttons, chips, the search field. Any value ≥ half the height gives a
+  /// pill; 999 keeps it independent of the widget's size.
+  static const pill = BorderRadius.all(Radius.circular(999));
 }
 
 /// Motion tokens. Nothing over 200 ms, nothing that overshoots.
@@ -100,6 +113,6 @@ abstract final class IconSz {
   static const row = 16.0;
   static const nav = 18.0;
   static const transport = 20.0;
-  static const nowPlaying = 24.0;
-  static const playLarge = 32.0;
+  static const playGlyph = 16.0;
+  static const playGlyphLarge = 24.0;
 }

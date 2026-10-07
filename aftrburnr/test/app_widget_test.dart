@@ -3,7 +3,7 @@ import 'package:aftrburnr/app/services.dart';
 import 'package:aftrburnr/audio/player_controller.dart';
 import 'package:aftrburnr/audio/queue.dart';
 import 'package:aftrburnr/core/models/track.dart';
-import 'package:aftrburnr/features/queue/queue_row.dart';
+import 'package:aftrburnr/features/common/track_row.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -102,7 +102,8 @@ void main() {
     tester,
   ) async {
     await pumpApp(tester);
-    expect(find.text('Nothing queued.'), findsOneWidget);
+    expect(find.text('Nothing queued'), findsOneWidget);
+    expect(find.text('Your Library'), findsOneWidget);
     expect(find.text('Open files'), findsWidgets);
     // Space with nothing loaded does nothing.
     await tester.sendKeyEvent(LogicalKeyboardKey.space);
@@ -118,10 +119,13 @@ void main() {
       () => container.read(playerProvider.notifier).playTracks(pdTracks),
     );
     expect(find.text('Queue'), findsWidgets);
-    expect(find.text('NOW PLAYING'), findsOneWidget);
-    expect(find.text('UP NEXT'), findsOneWidget);
-    expect(find.text('Gymnopédie No. 1'), findsNWidgets(2)); // row + transport
-    expect(find.text('7 tracks up next · 24 m'), findsOneWidget);
+    expect(find.text('Now playing'), findsOneWidget);
+    expect(find.text('Next up'), findsOneWidget);
+    // Row, transport and the now-playing panel title.
+    expect(find.text('Gymnopédie No. 1'), findsNWidgets(3));
+    expect(find.text('7 tracks after this one · 24 m'), findsOneWidget);
+    // The panel shows what plays next.
+    expect(find.text('Next in queue'), findsOneWidget);
 
     // Space pauses, Ctrl+→ skips.
     await tester.sendKeyEvent(LogicalKeyboardKey.space);
@@ -149,7 +153,7 @@ void main() {
     await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
     await tester.pump(const Duration(milliseconds: 400));
     final selected = tester
-        .widgetList<TrackRowView>(find.byType(TrackRowView))
+        .widgetList<TrackRow>(find.byType(TrackRow))
         .where((r) => r.selected)
         .map((r) => r.track!.title)
         .toList();
@@ -176,7 +180,8 @@ void main() {
     await run(tester, () async {});
     expect(st().queue.entries[1].origin, QueueOrigin.next);
     expect(st().trackOf(st().queue.entries[1])!.title, 'Gnossienne No. 1');
-    expect(find.text('NEXT UP'), findsOneWidget);
+    // It now leads the queue under its own heading (plus the panel card).
+    expect(find.text('Next in queue'), findsNWidgets(2));
 
     await tester.tap(find.text('Gymnopédie No. 3'));
     await tester.pump(const Duration(milliseconds: 400));

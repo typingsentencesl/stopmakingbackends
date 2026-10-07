@@ -89,13 +89,15 @@ void main() {
     expect(hits, isEmpty, reason: hits.join('\n'));
   });
 
-  test('radius is 0 or 2 only', () {
+  test('radius is 0, 4, 8 or a pill only (DESIGN.md §5)', () {
     final re = RegExp(r'Radius\.circular\(\s*([\d.]+)\s*\)');
     final hits = <String>[];
     for (final f in files) {
       for (final m in re.allMatches(code(f))) {
         final v = double.parse(m.group(1)!);
-        if (v != 0 && v != 2) hits.add('${rel(f)}  ${m.group(0)}');
+        if (!{0.0, 4.0, 8.0, 999.0}.contains(v)) {
+          hits.add('${rel(f)}  ${m.group(0)}');
+        }
       }
     }
     expect(hits, isEmpty, reason: hits.join('\n'));

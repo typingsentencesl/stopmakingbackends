@@ -252,7 +252,12 @@ class PlayQueue {
   ///
   /// Entries dropped inside an existing "next up" block join it; `next`
   /// entries dragged out of the block become ordinary queued entries.
-  PlayQueue move(Set<int> uids, int toIndex) {
+  ///
+  /// [intoNext] overrides that inference when the UI knows which section
+  /// the rows were dropped into (the boundary between the "next up" block
+  /// and the rest is otherwise ambiguous). The drop position is clamped
+  /// into that section.
+  PlayQueue move(Set<int> uids, int toIndex, {bool? intoNext}) {
     if (uids.isEmpty) return this;
     final moving = [
       for (final e in entries)
@@ -262,7 +267,7 @@ class PlayQueue {
       for (final e in entries)
         if (!uids.contains(e.uid)) e,
     ];
-    final at = entries
+    var at = entries
         .take(toIndex.clamp(0, entries.length))
         .where((e) => !uids.contains(e.uid))
         .length;
@@ -275,11 +280,20 @@ class PlayQueue {
         blockLen++;
       }
     }
-    final intoBlock =
-        restCur >= 0 &&
-        blockLen > 0 &&
-        at > restCur &&
-        at <= restCur + blockLen;
+    bool intoBlock;
+    if (intoNext != null && restCur >= 0 && at > restCur) {
+      intoBlock = intoNext;
+      final blockEnd = restCur + 1 + blockLen;
+      at = intoNext
+          ? at.clamp(restCur + 1, blockEnd)
+          : (at < blockEnd ? blockEnd : at);
+    } else {
+      intoBlock =
+          restCur >= 0 &&
+          blockLen > 0 &&
+          at > restCur &&
+          at <= restCur + blockLen;
+    }
     final placed = [
       for (final e in moving)
         if (e.uid == curUid)

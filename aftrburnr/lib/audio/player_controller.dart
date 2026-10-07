@@ -538,10 +538,11 @@ class PlayerController extends Notifier<PlayerState> {
   Future<void> clearPlayed() =>
       remove({for (final e in state.queue.played) e.uid});
 
-  Future<void> move(Set<int> uids, int toIndex) => _serial(() async {
-    _setQueue(state.queue.move(uids, toIndex));
-    await _preloadNext();
-  });
+  Future<void> move(Set<int> uids, int toIndex, {bool? intoNext}) =>
+      _serial(() async {
+        _setQueue(state.queue.move(uids, toIndex, intoNext: intoNext));
+        await _preloadNext();
+      });
 
   /// "Play next" for rows already in the queue.
   Future<void> makeNext(Set<int> uids) => _serial(() async {

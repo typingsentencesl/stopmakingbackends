@@ -130,6 +130,23 @@ void main() {
       },
     );
 
+    test('an explicit section overrides the inferred one', () {
+      var q = PlayQueue.empty.replace(tracks(4)).playNext(['a']);
+      // [t0, a, t1, t2, t3]; drop t3 right after 'a' but into "Next up".
+      q = q.move({q.entries[4].uid}, 2, intoNext: false);
+      expect(ids(q), ['t0', 'a', 't3', 't1', 't2']);
+      expect(q.entries[2].origin, isNot(QueueOrigin.next));
+      // Drop t2 at the same boundary into "Next in queue".
+      q = q.move({q.entries[4].uid}, 2, intoNext: true);
+      expect(ids(q), ['t0', 'a', 't2', 't3', 't1']);
+      expect(q.entries[2].origin, QueueOrigin.next);
+      // With no block at all, intoNext creates one right after current.
+      var r = PlayQueue.empty.replace(tracks(3));
+      r = r.move({r.entries[2].uid}, 3, intoNext: true);
+      expect(ids(r), ['t0', 't2', 't1']);
+      expect(r.entries[1].origin, QueueOrigin.next);
+    });
+
     test('makeNext moves rows into the next-up block, from either side', () {
       var q = PlayQueue.empty.replace(tracks(5), startIndex: 2).playNext(['n']);
       // [t0, t1, t2*, n, t3, t4]

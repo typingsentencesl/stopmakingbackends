@@ -34,9 +34,9 @@ ThemeData buildTheme() {
     onInverseSurface: C.bg0,
     inversePrimary: C.flamePressed,
   );
-  const shape = RoundedRectangleBorder(borderRadius: R.control);
+  const shape = RoundedRectangleBorder(borderRadius: R.small);
   final textTheme = TextTheme(
-    displayLarge: t.displayXL,
+    displayLarge: t.hero,
     displayMedium: t.displayL,
     displaySmall: t.displayM,
     headlineLarge: t.displayL,
@@ -98,22 +98,18 @@ ThemeData buildTheme() {
       mainAxisMargin: 0,
     ),
     tooltipTheme: TooltipThemeData(
-      decoration: BoxDecoration(
-        color: C.bg2,
-        borderRadius: R.control,
-        border: Border.all(color: C.lineStrong),
-      ),
-      textStyle: t.meta.copyWith(color: C.textHi),
+      decoration: const BoxDecoration(color: C.bg3, borderRadius: R.small),
+      textStyle: t.metaS.copyWith(color: C.textHi),
       padding: const EdgeInsets.symmetric(horizontal: S.s3, vertical: S.s2),
       waitDuration: const Duration(milliseconds: 600),
       exitDuration: M.instant,
       preferBelow: false,
     ),
     popupMenuTheme: PopupMenuThemeData(
-      color: C.bg2,
+      color: C.bg3,
       elevation: 0,
       shape: const RoundedRectangleBorder(
-        borderRadius: R.control,
+        borderRadius: R.small,
         side: BorderSide(color: C.lineStrong),
       ),
       textStyle: t.body,
@@ -121,10 +117,7 @@ ThemeData buildTheme() {
     dialogTheme: DialogThemeData(
       backgroundColor: C.bg1,
       elevation: 0,
-      shape: const RoundedRectangleBorder(
-        borderRadius: R.none,
-        side: BorderSide(color: C.line),
-      ),
+      shape: const RoundedRectangleBorder(borderRadius: R.panel),
       barrierColor: C.scrim,
       titleTextStyle: t.titleS,
       contentTextStyle: t.body,
@@ -139,15 +132,15 @@ ThemeData buildTheme() {
         vertical: S.s3,
       ),
       border: const OutlineInputBorder(
-        borderRadius: R.control,
+        borderRadius: R.small,
         borderSide: BorderSide(color: C.line),
       ),
       enabledBorder: const OutlineInputBorder(
-        borderRadius: R.control,
+        borderRadius: R.small,
         borderSide: BorderSide(color: C.line),
       ),
       focusedBorder: const OutlineInputBorder(
-        borderRadius: R.control,
+        borderRadius: R.small,
         borderSide: BorderSide(color: C.textHi),
       ),
       hoverColor: C.transparent,

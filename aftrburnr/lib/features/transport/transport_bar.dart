@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:lucide_icons_flutter/lucide_icons.dart';
 
+import '../../app/layout_state.dart';
 import '../../audio/player_controller.dart';
 import '../../audio/queue.dart';
 import '../../core/format.dart';
@@ -10,10 +11,9 @@ import '../../design/type.dart';
 import '../../design/widgets/af_slider.dart';
 import '../../design/widgets/art.dart';
 import '../../design/widgets/buttons.dart';
-import '../../design/widgets/pressable.dart';
 
-/// Bottom transport: what's playing on the left, controls and progress in
-/// the middle, volume on the right. 72 px, `bg1`, hairline on top.
+/// Bottom transport on the canvas (DESIGN.md §10): what's playing on the
+/// left, controls over progress in the middle, panels and volume right.
 class TransportBar extends ConsumerWidget {
   const TransportBar({super.key});
 
@@ -24,54 +24,57 @@ class TransportBar extends ConsumerWidget {
     final t = AfType.desktop;
     return Container(
       height: Dim.transport,
-      decoration: const BoxDecoration(
-        color: C.bg1,
-        border: Border(
-          top: BorderSide(color: C.line, width: Dim.hairline),
-        ),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: S.s5),
-      child: Row(
-        children: [
-          // Now playing.
-          SizedBox(
-            width: 288,
-            child: track == null
-                ? const SizedBox.shrink()
-                : Row(
-                    children: [
-                      Art(uri: track.artUri, size: S.s8),
-                      const SizedBox(width: S.s4),
-                      Expanded(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              track.title,
-                              style: t.titleS,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+      color: C.bg0,
+      padding: const EdgeInsets.symmetric(horizontal: S.s4),
+      child: LayoutBuilder(
+        builder: (context, c) {
+          final side = (c.maxWidth * 0.3).clamp(180.0, 380.0);
+          return Row(
+            children: [
+              SizedBox(
+                width: side,
+                child: track == null
+                    ? const SizedBox.shrink()
+                    : Row(
+                        children: [
+                          Art(uri: track.artUri, size: Dim.transportArt),
+                          const SizedBox(width: S.s4),
+                          Expanded(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  track.title,
+                                  style: t.titleS,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: S.s1),
+                                Text(
+                                  track.displayArtist,
+                                  style: t.metaS,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
                             ),
-                            Text(
-                              track.album.isEmpty
-                                  ? track.displayArtist
-                                  : '${track.displayArtist} · ${track.album}',
-                              style: t.meta,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                    ],
+              ),
+              Expanded(
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 720),
+                    child: const _Controls(),
                   ),
-          ),
-          const SizedBox(width: S.s6),
-          const Expanded(child: _Controls()),
-          const SizedBox(width: S.s6),
-          const SizedBox(width: 176, child: _Volume()),
-        ],
+                ),
+              ),
+              SizedBox(width: side, child: const _Right()),
+            ],
+          );
+        },
       ),
     );
   }
@@ -103,6 +106,7 @@ class _Controls extends ConsumerWidget {
                 ShuffleMode.leastRecent =>
                   'Shuffle: least recently played  (S)',
               },
+              size: IconSz.nav,
               active: shuffle != ShuffleMode.off,
               onPressed: c.cycleShuffle,
             ),
@@ -113,7 +117,10 @@ class _Controls extends ConsumerWidget {
               onPressed: has ? c.previous : null,
             ),
             const SizedBox(width: S.s3),
-            _PlayButton(playing: st.playing, enabled: has, onTap: c.togglePlay),
+            PlayCircle(
+              playing: st.playing,
+              onPressed: has ? c.togglePlay : null,
+            ),
             const SizedBox(width: S.s3),
             AfIconButton(
               icon: LucideIcons.skipForward,
@@ -130,6 +137,7 @@ class _Controls extends ConsumerWidget {
                 QueueRepeat.all => 'Repeat: queue  (R)',
                 QueueRepeat.one => 'Repeat: this track  (R)',
               },
+              size: IconSz.nav,
               active: repeat != QueueRepeat.off,
               onPressed: c.cycleRepeat,
             ),
@@ -138,69 +146,6 @@ class _Controls extends ConsumerWidget {
         const SizedBox(height: S.s1),
         const _Progress(),
       ],
-    );
-  }
-}
-
-class _PlayButton extends StatelessWidget {
-  const _PlayButton({
-    required this.playing,
-    required this.enabled,
-    required this.onTap,
-  });
-  final bool playing;
-  final bool enabled;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final label = playing ? 'Pause  (Space)' : 'Play  (Space)';
-    return Tooltip(
-      message: label,
-      child: Pressable(
-        onTap: enabled ? onTap : null,
-        semanticLabel: playing ? 'Pause' : 'Play',
-        builder: (context, s) => Stack(
-          clipBehavior: Clip.none,
-          children: [
-            AnimatedContainer(
-              duration: M.fast,
-              curve: M.fastCurve,
-              width: S.s7,
-              height: S.s7,
-              decoration: BoxDecoration(
-                color: !s.enabled
-                    ? C.bg2
-                    : s.pressed
-                    ? C.flamePressed
-                    : s.hovered
-                    ? C.flame
-                    : C.textHi,
-                borderRadius: R.control,
-              ),
-              child: Icon(
-                playing ? LucideIcons.pause : LucideIcons.play,
-                size: IconSz.nav,
-                color: s.enabled ? C.bg0 : C.textOff,
-              ),
-            ),
-            // Focus ring: 1 px textHi, offset 2 px from the button.
-            if (s.focused)
-              Positioned(
-                left: -3,
-                top: -3,
-                right: -3,
-                bottom: -3,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    borderRadius: R.control,
-                    border: Border.all(color: C.textHi, width: Dim.hairline),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -229,85 +174,83 @@ class _ProgressState extends ConsumerState<_Progress> {
         ? Duration(milliseconds: (frac * dur.inMilliseconds).round())
         : Duration.zero;
     final t = AfType.desktop;
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 560),
-      child: Row(
-        children: [
-          SizedBox(
-            width: S.s8,
-            child: Text(
-              formatDuration(shown),
-              style: t.numS,
-              textAlign: TextAlign.right,
-            ),
+    return Row(
+      children: [
+        SizedBox(
+          width: S.s8,
+          child: Text(
+            formatDuration(shown),
+            style: t.numS,
+            textAlign: TextAlign.right,
           ),
-          const SizedBox(width: S.s3),
-          Expanded(
-            child: AfSlider(
-              value: frac,
-              semanticLabel: 'Seek',
-              step: dur.inMilliseconds == 0 ? 0.05 : 10000 / dur.inMilliseconds,
-              onChanged: has ? (v) => setState(() => _scrub = v) : null,
-              onChangeEnd: has
-                  ? (v) {
-                      setState(() => _scrub = null);
-                      ref
-                          .read(playerProvider.notifier)
-                          .seek(
-                            Duration(
-                              milliseconds: (v * dur.inMilliseconds).round(),
-                            ),
-                          );
-                    }
-                  : null,
-            ),
+        ),
+        const SizedBox(width: S.s3),
+        Expanded(
+          child: AfSlider(
+            value: frac,
+            semanticLabel: 'Seek',
+            step: dur.inMilliseconds == 0 ? 0.05 : 10000 / dur.inMilliseconds,
+            onChanged: has ? (v) => setState(() => _scrub = v) : null,
+            onChangeEnd: has
+                ? (v) {
+                    setState(() => _scrub = null);
+                    ref
+                        .read(playerProvider.notifier)
+                        .seek(
+                          Duration(
+                            milliseconds: (v * dur.inMilliseconds).round(),
+                          ),
+                        );
+                  }
+                : null,
           ),
-          const SizedBox(width: S.s3),
-          SizedBox(
-            width: S.s8,
-            child: Text(has ? formatDuration(dur) : '0:00', style: t.numS),
-          ),
-        ],
-      ),
+        ),
+        const SizedBox(width: S.s3),
+        SizedBox(
+          width: S.s8,
+          child: Text(has ? formatDuration(dur) : '0:00', style: t.numS),
+        ),
+      ],
     );
   }
 }
 
-class _Volume extends ConsumerWidget {
-  const _Volume();
+class _Right extends ConsumerWidget {
+  const _Right();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final vol = ref.watch(playerProvider.select((s) => s.volume));
+    final panel = ref.watch(layoutProvider.select((l) => l.nowPlaying));
     final c = ref.read(playerProvider.notifier);
     return Row(
+      mainAxisAlignment: MainAxisAlignment.end,
       children: [
+        AfIconButton(
+          icon: LucideIcons.squarePlay,
+          tooltip: panel ? 'Hide now playing view' : 'Show now playing view',
+          size: IconSz.nav,
+          active: panel,
+          onPressed: () => ref.read(layoutProvider.notifier).toggleNowPlaying(),
+        ),
+        const SizedBox(width: S.s2),
         AfIconButton(
           icon: vol == 0
               ? LucideIcons.volumeX
               : vol < 0.5
               ? LucideIcons.volume1
               : LucideIcons.volume2,
-          tooltip: vol == 0 ? 'Unmute' : 'Mute',
+          tooltip: vol == 0 ? 'Unmute  (M)' : 'Mute  (M)',
           size: IconSz.nav,
-          onPressed: () => c.toggleMute(),
+          onPressed: c.toggleMute,
         ),
         const SizedBox(width: S.s2),
-        Expanded(
+        SizedBox(
+          width: 96,
           child: AfSlider(
             value: vol,
             semanticLabel: 'Volume',
-            fill: C.textMid,
             onChanged: (v) => c.setVolume(v),
-          ),
-        ),
-        const SizedBox(width: S.s3),
-        SizedBox(
-          width: S.s6 + S.s2,
-          child: Text(
-            '${(vol * 100).round()}',
-            style: AfType.desktop.numS,
-            textAlign: TextAlign.right,
           ),
         ),
       ],

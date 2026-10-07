@@ -79,7 +79,7 @@ void main() {
     await tester.tap(find.text('Arabesque No. 1'));
     await tester.sendKeyUpEvent(LogicalKeyboardKey.shiftLeft);
     await settle(tester);
-    await tester.tap(find.text('PLAYED'));
+    await tester.tap(find.text('Played'));
     await settle(tester);
     await expectLater(shot, matchesGoldenFile('../docs/screens/02-queue.png'));
   }, skip: !enabled);
@@ -87,7 +87,7 @@ void main() {
   testWidgets('context menu', (tester) async {
     await pumpApp(tester);
     await play(tester);
-    final at = tester.getCenter(find.text('Clair de lune'));
+    final at = tester.getCenter(find.text('Arabesque No. 1'));
     final g = await tester.startGesture(
       at,
       buttons: kSecondaryButton,

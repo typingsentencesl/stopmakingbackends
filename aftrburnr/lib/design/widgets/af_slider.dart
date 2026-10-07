@@ -3,8 +3,8 @@ import 'package:flutter/services.dart';
 
 import '../tokens.dart';
 
-/// Hairline track, flame fill, 8 px square thumb that appears on hover,
-/// drag or focus. Used for progress and volume.
+/// Progress and volume bar: 4 px pill track, `textHi` fill at rest that
+/// turns flame with a 12 px round thumb while hovered, dragged or focused.
 class AfSlider extends StatefulWidget {
   const AfSlider({
     super.key,
@@ -14,7 +14,6 @@ class AfSlider extends StatefulWidget {
     this.height = 16,
     this.step = 0.05,
     this.semanticLabel,
-    this.fill = C.flame,
   });
 
   /// 0–1.
@@ -26,7 +25,6 @@ class AfSlider extends StatefulWidget {
   /// Keyboard step when focused.
   final double step;
   final String? semanticLabel;
-  final Color fill;
 
   @override
   State<AfSlider> createState() => _AfSliderState();
@@ -51,7 +49,7 @@ class _AfSliderState extends State<AfSlider> {
   @override
   Widget build(BuildContext context) {
     final v = (_drag ?? widget.value).clamp(0.0, 1.0);
-    final showThumb = _enabled && (_hover || _drag != null || _focus);
+    final hot = _enabled && (_hover || _drag != null || _focus);
     return Semantics(
       slider: true,
       label: widget.semanticLabel,
@@ -108,10 +106,9 @@ class _AfSliderState extends State<AfSlider> {
                 child: CustomPaint(
                   painter: _SliderPainter(
                     value: v,
-                    thumb: showThumb,
+                    hot: hot,
                     focused: _focus,
-                    fill: _enabled ? widget.fill : C.textOff,
-                    thick: _hover || _drag != null,
+                    enabled: _enabled,
                   ),
                 ),
               ),
@@ -131,41 +128,47 @@ class _NudgeIntent extends Intent {
 class _SliderPainter extends CustomPainter {
   _SliderPainter({
     required this.value,
-    required this.thumb,
+    required this.hot,
     required this.focused,
-    required this.fill,
-    required this.thick,
+    required this.enabled,
   });
 
   final double value;
-  final bool thumb;
+  final bool hot;
   final bool focused;
-  final Color fill;
-  final bool thick;
+  final bool enabled;
 
   @override
   void paint(Canvas canvas, Size size) {
-    final h = thick ? 3.0 : 2.0;
+    const h = Dim.progressTrack;
     final y = (size.height - h) / 2;
     final x = size.width * value;
-    canvas.drawRect(
-      Rect.fromLTWH(0, y, size.width, h),
+    const pill = Radius.circular(999);
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(Rect.fromLTWH(0, y, size.width, h), pill),
       Paint()..color = C.lineStrong,
     );
-    canvas.drawRect(Rect.fromLTWH(0, y, x, h), Paint()..color = fill);
-    if (thumb) {
-      final r = RRect.fromRectAndRadius(
-        Rect.fromCenter(
-          center: Offset(x.clamp(4, size.width - 4), size.height / 2),
-          width: 8,
-          height: 8,
-        ),
-        const Radius.circular(2),
+    if (x > 0) {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(Rect.fromLTWH(0, y, x, h), pill),
+        Paint()
+          ..color = !enabled
+              ? C.textOff
+              : hot
+              ? C.flame
+              : C.textHi,
       );
-      canvas.drawRRect(r, Paint()..color = C.textHi);
+    }
+    if (hot) {
+      final c = Offset(
+        x.clamp(Dim.progressThumb / 2, size.width - Dim.progressThumb / 2),
+        size.height / 2,
+      );
+      canvas.drawCircle(c, Dim.progressThumb / 2, Paint()..color = C.textHi);
       if (focused) {
-        canvas.drawRRect(
-          r.inflate(2),
+        canvas.drawCircle(
+          c,
+          Dim.progressThumb / 2 + 2,
           Paint()
             ..color = C.textHi
             ..style = PaintingStyle.stroke
@@ -178,8 +181,7 @@ class _SliderPainter extends CustomPainter {
   @override
   bool shouldRepaint(_SliderPainter o) =>
       o.value != value ||
-      o.thumb != thumb ||
+      o.hot != hot ||
       o.focused != focused ||
-      o.fill != fill ||
-      o.thick != thick;
+      o.enabled != enabled;
 }

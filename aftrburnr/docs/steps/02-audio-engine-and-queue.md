@@ -2,6 +2,13 @@
 
 ![Queue](../screens/02-queue.png)
 
+> **Restyled after review (design spec v2):** the UI now follows Spotify's layout and
+> feel — rounded panels on a near-black canvas, "Your Library" on the left, a
+> now-playing panel on the right (art on a band of the art's own color, "Next in
+> queue"), 56 px rows with art and title over artist, hover-to-play numbers and a `⋯`
+> menu, pill buttons, a round play button, a white progress bar that turns flame
+> under the pointer. Flame stays the only accent. See [DESIGN.md](../DESIGN.md).
+
 ## What works
 
 **Engine (libmpv via media_kit, two decks)**
@@ -34,7 +41,11 @@
   step 9 (stats) and step 8 (smart playlists).
 
 **App**
-- Desktop shell: sidebar, queue page, transport bar, error strip.
+- Desktop shell (v2): library panel, queue page, now-playing panel (toggle in the
+  transport bar, remembered; hides on narrow windows and while nothing is loaded),
+  transport bar, error strip.
+- Queue sections: Played (collapsible), Now playing, Next in queue (play-next entries),
+  Next up. Rows can be dragged between sections.
 - Open files (Ctrl+O) replaces the queue; Add to queue (Ctrl+Shift+O) appends. Tags and
   embedded cover art are read in a background isolate.
 - Files passed on the command line play immediately ("Open with" from Explorer).

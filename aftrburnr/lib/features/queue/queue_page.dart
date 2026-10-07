@@ -14,7 +14,7 @@ import '../../design/widgets/buttons.dart';
 import '../../design/widgets/drag_proxy.dart';
 import '../../design/widgets/pressable.dart';
 import '../../design/widgets/states.dart';
-import 'queue_row.dart';
+import '../common/track_row.dart';
 
 /// The queue: "Played" (collapsed), "Now playing", then everything
 /// upcoming, which can be reordered by drag. Rows support click,
@@ -220,18 +220,59 @@ class _QueuePageState extends ConsumerState<QueuePage> {
     return KeyEventResult.handled;
   }
 
-  /// [newIndex] is where the dragged row lands once it has been taken out
-  /// of the list; [PlayQueue.move] wants an index into the list before the
-  /// move, hence the +1 when dragging downwards.
-  void _onReorder(PlayQueue q, int oldIndex, int newIndex) {
+  /// Upcoming rows plus the two section headers, in display order. The
+  /// headers live inside the reorderable list so rows can be dragged
+  /// between "Next in queue" and "Next up".
+  List<_Item> _upcomingItems(PlayQueue q) {
     final up = q.upcoming;
-    if (oldIndex >= up.length) return;
-    final uid = up[oldIndex].uid;
-    final start = q.current + 1;
-    final before = newIndex < oldIndex ? newIndex : newIndex + 1;
-    final moving = _sel.contains(uid) && _sel.length > 1 ? {..._sel} : {uid};
-    _c.move(moving, start + before);
+    final next = up.takeWhile((e) => e.origin == QueueOrigin.next).toList();
+    final rest = up.skip(next.length).toList();
+    var n = 0;
+    return [
+      if (next.isNotEmpty) const _Item.header('Next in queue'),
+      for (final e in next) _Item.entry(e, ++n),
+      if (rest.isNotEmpty) const _Item.header('Next up'),
+      for (final e in rest) _Item.entry(e, ++n),
+    ];
   }
+
+  /// [newIndex] is where the dragged row lands once it has been taken out
+  /// of [items]. The section header above the landing spot decides whether
+  /// the rows join "Next in queue".
+  void _onReorder(PlayQueue q, List<_Item> items, int oldIndex, int newIndex) {
+    final dragged = items[oldIndex].entry;
+    if (dragged == null) return;
+    final without = [...items]..removeAt(oldIndex);
+    final landing = newIndex.clamp(0, without.length);
+    // Section: the nearest header above the landing slot.
+    String? section;
+    for (var i = landing - 1; i >= 0; i--) {
+      if (without[i].header != null) {
+        section = without[i].header;
+        break;
+      }
+    }
+    section ??= without.isNotEmpty && without.first.header != null
+        ? without.first.header
+        : null;
+    // Entry the dragged row is dropped in front of (null = end of queue).
+    QueueEntry? before;
+    for (var i = landing; i < without.length; i++) {
+      if (without[i].entry != null) {
+        before = without[i].entry;
+        break;
+      }
+    }
+    final moving = _sel.contains(dragged.uid) && _sel.length > 1
+        ? {..._sel}
+        : {dragged.uid};
+    final to = before == null
+        ? q.entries.length
+        : q.entries.indexWhere((e) => e.uid == before!.uid);
+    _c.move(moving, to, intoNext: section == 'Next in queue');
+  }
+
+  void _menuAt(int uid, Offset at, PlayQueue q) => _menu(uid, at, q);
 
   @override
   Widget build(BuildContext context) {
@@ -243,7 +284,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
       return Align(
         alignment: Alignment.topLeft,
         child: PageMessage(
-          title: 'Nothing queued.',
+          title: 'Nothing queued',
           body:
               'Open audio files and they start playing here. '
               'MP3, FLAC, M4A, OGG, Opus, WAV and more.',
@@ -261,6 +302,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
     _sel.removeWhere((u) => !all.contains(u));
     final up = q.upcoming;
     final played = q.played;
+    final items = _upcomingItems(q);
     final remaining = up.fold<Duration>(
       Duration.zero,
       (a, e) => a + (st.tracks[e.trackId]?.duration ?? Duration.zero),
@@ -268,14 +310,14 @@ class _QueuePageState extends ConsumerState<QueuePage> {
 
     return LayoutBuilder(
       builder: (context, c) {
-        final showAlbum = c.maxWidth > 640;
+        final showAlbum = c.maxWidth > 560;
         Widget row(
           QueueEntry e, {
           int? number,
           bool dim = false,
           bool current = false,
         }) {
-          return TrackRowView(
+          return TrackRow(
             track: st.tracks[e.trackId],
             number: number,
             isCurrent: current,
@@ -283,14 +325,15 @@ class _QueuePageState extends ConsumerState<QueuePage> {
             selected: _sel.contains(e.uid),
             focused: _cursor == e.uid && _focus.hasFocus,
             dim: dim,
-            badge: e.origin == QueueOrigin.next ? 'Next up' : null,
             showAlbum: showAlbum,
             onTap: () => _click(e.uid, q),
             onDoubleTap: () => _c.jumpTo(e.uid),
-            onSecondaryTapUp: (d) => _menu(e.uid, d.globalPosition, q),
+            onPlay: current ? _c.togglePlay : () => _c.jumpTo(e.uid),
+            onMenu: (at) => _menuAt(e.uid, at, q),
           );
         }
 
+        const listPad = EdgeInsets.symmetric(horizontal: S.s5);
         return Focus(
           focusNode: _focus,
           onFocusChange: (_) => setState(() {}),
@@ -301,9 +344,9 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(
                     Dim.gutter,
-                    S.s7,
+                    S.s6,
                     Dim.gutter,
-                    S.s5,
+                    S.s3,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -313,7 +356,7 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                       Text(
                         up.isEmpty
                             ? 'Nothing after this track'
-                            : '${plural(up.length, 'track')} up next · ${formatTotal(remaining)}',
+                            : '${plural(up.length, 'track')} after this one · ${formatTotal(remaining)}',
                         style: t.meta.copyWith(
                           fontFeatures: t.num.fontFeatures,
                         ),
@@ -323,13 +366,13 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                         children: [
                           AfButton(
                             label: 'Add files',
-                            icon: LucideIcons.filePlus2,
+                            icon: LucideIcons.plus,
                             onPressed: () =>
                                 openFiles(context, ref, playNow: false),
                           ),
                           const SizedBox(width: S.s3),
                           AfButton(
-                            label: 'Clear up next',
+                            label: 'Clear queue',
                             onPressed: up.isEmpty ? null : _c.clearUpcoming,
                           ),
                           const SizedBox(width: S.s3),
@@ -353,42 +396,60 @@ class _QueuePageState extends ConsumerState<QueuePage> {
                   ),
                 ),
                 if (_showPlayed)
-                  SliverList.builder(
-                    itemCount: played.length,
-                    itemBuilder: (context, i) => row(played[i], dim: true),
+                  SliverPadding(
+                    padding: listPad,
+                    sliver: SliverList.builder(
+                      itemCount: played.length,
+                      itemBuilder: (context, i) => row(played[i], dim: true),
+                    ),
                   ),
               ],
-              const SliverToBoxAdapter(child: _Eyebrow('Now playing')),
-              SliverToBoxAdapter(child: row(q.currentEntry!, current: true)),
-              const SliverToBoxAdapter(child: _Eyebrow('Up next')),
+              const SliverToBoxAdapter(child: _Heading('Now playing')),
+              SliverPadding(
+                padding: listPad,
+                sliver: SliverToBoxAdapter(
+                  child: row(q.currentEntry!, current: true),
+                ),
+              ),
               if (up.isEmpty)
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(
                       Dim.gutter,
-                      S.s2,
+                      S.s6,
                       Dim.gutter,
                       S.s2,
                     ),
                     child: Text(
-                      'Queue ends after this track. Add files, or turn on repeat.',
+                      'The queue ends after this track. Add files, or turn on repeat.',
                       style: t.meta,
                     ),
                   ),
                 )
               else
-                SliverReorderableList(
-                  itemCount: up.length,
-                  proxyDecorator: dragProxy,
-                  onReorderItem: (a, b) => _onReorder(q, a, b),
-                  itemBuilder: (context, i) {
-                    final e = up[i];
-                    return ReorderableDragStartListener(
-                      key: ValueKey(e.uid),
-                      index: i,
-                      child: row(e, number: i + 1),
-                    );
-                  },
+                SliverPadding(
+                  padding: listPad,
+                  sliver: SliverReorderableList(
+                    itemCount: items.length,
+                    proxyDecorator: dragProxy,
+                    onReorderItem: (a, b) => _onReorder(q, items, a, b),
+                    itemBuilder: (context, i) {
+                      final it = items[i];
+                      final e = it.entry;
+                      if (e == null) {
+                        return _Heading(
+                          it.header!,
+                          key: ValueKey('h:${it.header}'),
+                          inset: false,
+                        );
+                      }
+                      return ReorderableDragStartListener(
+                        key: ValueKey(e.uid),
+                        index: i,
+                        child: row(e, number: it.number),
+                      );
+                    },
+                  ),
                 ),
               const SliverToBoxAdapter(child: SizedBox(height: S.s8)),
             ],
@@ -399,15 +460,31 @@ class _QueuePageState extends ConsumerState<QueuePage> {
   }
 }
 
-class _Eyebrow extends StatelessWidget {
-  const _Eyebrow(this.text);
+class _Item {
+  const _Item.header(String this.header) : entry = null, number = null;
+  const _Item.entry(QueueEntry this.entry, int this.number) : header = null;
+  final String? header;
+  final QueueEntry? entry;
+  final int? number;
+}
+
+class _Heading extends StatelessWidget {
+  const _Heading(this.text, {super.key, this.inset = true});
   final String text;
+
+  /// Headings outside the padded list carry the page gutter themselves.
+  final bool inset;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(Dim.gutter, S.s5, Dim.gutter, S.s2),
-      child: Text(text.toUpperCase(), style: AfType.desktop.label),
+      padding: EdgeInsets.fromLTRB(
+        inset ? Dim.gutter : S.s3,
+        S.s6,
+        inset ? Dim.gutter : S.s3,
+        S.s3,
+      ),
+      child: Text(text, style: AfType.desktop.section),
     );
   }
 }
@@ -431,27 +508,30 @@ class _SectionToggle extends StatelessWidget {
     return Pressable(
       onTap: onTap,
       semanticLabel: open ? 'Hide played' : 'Show played',
-      builder: (context, s) => Container(
-        padding: const EdgeInsets.fromLTRB(Dim.gutter, S.s5, Dim.gutter, S.s2),
-        child: Row(
-          children: [
-            Text(
-              label.toUpperCase(),
-              style: t.label.copyWith(
-                color: s.hovered || s.focused ? C.textHi : C.textLow,
+      builder: (context, s) {
+        final c = s.hovered || s.focused ? C.textHi : C.textMid;
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(
+            Dim.gutter,
+            S.s6,
+            Dim.gutter,
+            S.s3,
+          ),
+          child: Row(
+            children: [
+              Text(label, style: t.section.copyWith(color: c)),
+              const SizedBox(width: S.s3),
+              Text(formatCount(count), style: t.num.copyWith(color: c)),
+              const SizedBox(width: S.s2),
+              Icon(
+                open ? LucideIcons.chevronDown : LucideIcons.chevronRight,
+                size: IconSz.nav,
+                color: c,
               ),
-            ),
-            const SizedBox(width: S.s3),
-            Text(formatCount(count), style: t.numS.copyWith(color: C.textLow)),
-            const SizedBox(width: S.s2),
-            Icon(
-              open ? LucideIcons.chevronDown : LucideIcons.chevronRight,
-              size: IconSz.row,
-              color: s.hovered || s.focused ? C.textHi : C.textLow,
-            ),
-          ],
-        ),
-      ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

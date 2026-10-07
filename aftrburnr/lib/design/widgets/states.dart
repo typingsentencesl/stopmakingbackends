@@ -111,7 +111,7 @@ class SourceBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: S.s2, vertical: S.s0),
       decoration: BoxDecoration(
-        borderRadius: R.control,
+        borderRadius: R.small,
         border: Border.all(color: C.line, width: Dim.hairline),
       ),
       child: Text(label.toUpperCase(), style: AfType.desktop.label),
@@ -129,7 +129,7 @@ class Keycap extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: S.s2, vertical: S.s0),
       decoration: BoxDecoration(
-        borderRadius: R.control,
+        borderRadius: R.small,
         border: Border.all(color: C.line, width: Dim.hairline),
       ),
       child: Text(keys.toUpperCase(), style: AfType.desktop.label),

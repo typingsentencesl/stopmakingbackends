@@ -22,7 +22,7 @@ class AfMenuItem {
   final bool enabled;
 }
 
-/// Context menu: `bg2`, 1 px `lineStrong`, 32 px rows, keyboard navigable,
+/// Context menu: `bg3`, r4, 1 px `lineStrong`, 36 px rows, keyboard navigable,
 /// Esc or a click outside closes it. Opens with a 160 ms fade, no scale.
 Future<void> showAfMenu(
   BuildContext context, {
@@ -78,8 +78,8 @@ class _MenuRoute extends PopupRoute<void> {
       width: 232,
       padding: const EdgeInsets.symmetric(vertical: S.s2),
       decoration: BoxDecoration(
-        color: C.bg2,
-        borderRadius: R.control,
+        color: C.bg3,
+        borderRadius: R.small,
         border: Border.all(color: C.lineStrong, width: Dim.hairline),
       ),
       child: Column(
@@ -106,13 +106,13 @@ class _MenuRoute extends PopupRoute<void> {
                           }
                         : null,
                     builder: (context, s) => Container(
-                      height: Dim.rowNormal,
+                      height: Dim.menuRow,
                       padding: const EdgeInsets.symmetric(horizontal: S.s4),
+                      margin: const EdgeInsets.symmetric(horizontal: S.s2),
                       decoration: BoxDecoration(
-                        color: s.pressed
-                            ? C.bg3
-                            : (s.hovered || s.focused)
-                            ? C.bg3
+                        borderRadius: R.small,
+                        color: (s.pressed || s.hovered || s.focused)
+                            ? C.lineStrong
                             : C.transparent,
                       ),
                       child: Row(
@@ -151,7 +151,7 @@ class _MenuRoute extends PopupRoute<void> {
         final h =
             items.fold<double>(
               0,
-              (a, it) => a + (it == null ? S.s3 + 1 : Dim.rowNormal),
+              (a, it) => a + (it == null ? S.s3 + 1 : Dim.menuRow),
             ) +
             S.s3;
         var x = position.dx;

@@ -5,14 +5,17 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../tokens.dart';
 
-/// Square album art, radius 0. Without art it shows a quiet `bg2` square
-/// with a small disc glyph: no gradients, no generated color.
+/// Album art. Radius 4 up to 64 px, 8 above (DESIGN.md §5). Without art it
+/// shows a quiet `bg3` square with a note glyph: no gradients, no generated
+/// color.
 class Art extends StatelessWidget {
   const Art({super.key, required this.uri, required this.size});
 
   /// File path, `file://` URI or http(s) URL.
   final String? uri;
   final double size;
+
+  BorderRadius get _radius => size > 64 ? R.panel : R.small;
 
   @override
   Widget build(BuildContext context) {
@@ -43,22 +46,23 @@ class Art extends StatelessWidget {
         errorBuilder: (_, _, _) => _placeholder(),
       );
     }
-    return SizedBox.square(dimension: size, child: img);
+    return ClipRRect(
+      borderRadius: _radius,
+      child: SizedBox.square(dimension: size, child: img),
+    );
   }
 
-  /// Below 32 px a glyph turns into noise, so small placeholders are a
-  /// plain tone step.
   Widget _placeholder() => Container(
     width: size,
     height: size,
-    color: C.bg2,
+    color: C.bg3,
     alignment: Alignment.center,
     child: size < S.s7
         ? null
         : Icon(
-            LucideIcons.disc3,
-            size: (size * 0.4).clamp(10.0, 48.0),
-            color: C.textOff,
+            LucideIcons.music,
+            size: (size * 0.4).clamp(IconSz.row, 64.0),
+            color: C.textLow,
           ),
   );
 }
